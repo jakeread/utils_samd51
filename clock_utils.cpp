@@ -51,15 +51,16 @@ void D51ClockUtils::setup_16mhz_xtal(void){
 }
 
 void D51ClockUtils::start_ticker_a(uint32_t us){
-    setup_16mhz_xtal();
+    //now using 120mHz main clock (gen(0)) instead of xtal, 
+    //setup_16mhz_xtal();
     // ok
     TC0->COUNT32.CTRLA.bit.ENABLE = 0;
     TC1->COUNT32.CTRLA.bit.ENABLE = 0;
     // unmask clocks
     MCLK->APBAMASK.reg |= MCLK_APBAMASK_TC0 | MCLK_APBAMASK_TC1;
     // ok, clock to these channels...
-    GCLK->PCHCTRL[TC0_GCLK_ID].reg = GCLK_PCHCTRL_CHEN | GCLK_PCHCTRL_GEN(this->mhz_xtal_gclk_num);
-    GCLK->PCHCTRL[TC1_GCLK_ID].reg = GCLK_PCHCTRL_CHEN | GCLK_PCHCTRL_GEN(this->mhz_xtal_gclk_num);
+    GCLK->PCHCTRL[TC0_GCLK_ID].reg = GCLK_PCHCTRL_CHEN | GCLK_PCHCTRL_GEN(0);//this->mhz_xtal_gclk_num);
+    GCLK->PCHCTRL[TC1_GCLK_ID].reg = GCLK_PCHCTRL_CHEN | GCLK_PCHCTRL_GEN(0);//this->mhz_xtal_gclk_num);
     // turn them ooon...
     TC0->COUNT32.CTRLA.reg = TC_CTRLA_MODE_COUNT32 | TC_CTRLA_PRESCSYNC_PRESC | TC_CTRLA_PRESCALER_DIV2 | TC_CTRLA_CAPTEN0;
     TC1->COUNT32.CTRLA.reg = TC_CTRLA_MODE_COUNT32 | TC_CTRLA_PRESCSYNC_PRESC | TC_CTRLA_PRESCALER_DIV2 | TC_CTRLA_CAPTEN0;
@@ -73,9 +74,10 @@ void D51ClockUtils::start_ticker_a(uint32_t us){
     // set the period,
     while (TC0->COUNT32.SYNCBUSY.bit.CC0);
     // 8 counts in here per us
-    // nothing > 1MHz, ok? 
-    if(us < 8) us = 8;
-    TC0->COUNT32.CC[0].reg = 8 * us;
+    // nothing > 100kHz, ok? 
+    if(us < 10) us = 10;
+    // 120 / 2 -> 60 ticks per us, 
+    TC0->COUNT32.CC[0].reg = 60 * us;
     // enable, sync for enable write
     while (TC0->COUNT32.SYNCBUSY.bit.ENABLE);
     TC0->COUNT32.CTRLA.bit.ENABLE = 1;
